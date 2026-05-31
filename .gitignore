@@ -1,0 +1,18 @@
+# Python / Django
+backend/venv/
+backend/__pycache__/
+backend/*.sqlite3
+backend/media/
+
+# Node / React
+frontend/node_modules/
+frontend/dist/
+
+# Environment variables
+.env
+
+migrations/
+*__pycache__/
+*.pyc
+
+assets/images/
