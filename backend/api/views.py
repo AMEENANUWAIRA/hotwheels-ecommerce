@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Avg
 from django_filters.rest_framework import DjangoFilterBackend
+from django_filters import FilterSet
 
 from .models import (
     Product, Review, Cart, CartItem, Order, OrderItem, 
@@ -21,6 +22,15 @@ from .serializers import (
     UserRegistrationSerializer, ProductRecommendationSerializer
 )
 from django.contrib.auth.models import User
+
+
+# Custom FilterSet for Product filtering
+class ProductFilterSet(FilterSet):
+    """Custom filter set for Product - only handles color"""
+    
+    class Meta:
+        model = Product
+        fields = ['color']
 
 
 # Authentication Views
@@ -89,10 +99,45 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Product.objects.all()
     permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'color']
-    search_fields = ['name', 'description']
+    filterset_class = ProductFilterSet
+    search_fields = ['name', 'description', 'color', 'category']
     ordering_fields = ['price', 'created_at', 'name']
     ordering = ['-created_at']
+    
+    def get_queryset(self):
+        """Handle multiple category parameters and price range"""
+        queryset = super().get_queryset()
+        
+        # Get multiple category values from query params
+        # Axios sends as category[]=value1&category[]=value2, so check for 'category[]'
+        categories = self.request.query_params.getlist('category[]')
+        if not categories:
+            # Fallback to 'category' in case format changes
+            categories = self.request.query_params.getlist('category')
+        
+        if categories:
+            queryset = queryset.filter(category__in=categories)
+        
+        # Handle price range filtering
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        
+        # Convert to float if provided
+        if min_price is not None:
+            try:
+                min_price = float(min_price)
+                queryset = queryset.filter(price__gte=min_price)
+            except (ValueError, TypeError):
+                pass
+        
+        if max_price is not None:
+            try:
+                max_price = float(max_price)
+                queryset = queryset.filter(price__lte=max_price)
+            except (ValueError, TypeError):
+                pass
+        
+        return queryset
     
     def get_serializer_class(self):
         """Use detailed serializer for retrieve, simple for list"""
@@ -173,7 +218,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Automatically set the current user as the reviewer"""
-        product_id = self.request.data.get('product')
+        product_id = self.request.data.get('product_id')
         product = get_object_or_404(Product, id=product_id)
         serializer.save(user=self.request.user, product=product)
     
@@ -189,13 +234,27 @@ class ReviewViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def mark_helpful(self, request, pk=None):
         """
-        Mark a review as helpful.
+        Toggle helpful status for a review.
+        If user already marked as helpful, removes the mark.
+        If not marked, adds the mark.
         /reviews/{id}/mark_helpful/
         """
         review = self.get_object()
-        review.helpful_count += 1
-        review.save()
-        return Response({'helpful_count': review.helpful_count})
+        
+        # Toggle helpful status
+        if review.helpful_users.filter(id=request.user.id).exists():
+            # Remove the mark
+            review.helpful_users.remove(request.user)
+            is_marked = False
+        else:
+            # Add the mark
+            review.helpful_users.add(request.user)
+            is_marked = True
+        
+        return Response({
+            'helpful_count': review.helpful_count,
+            'is_marked_helpful': is_marked
+        })
 
 
 # Cart Views

@@ -83,7 +83,7 @@ class Review(models.Model):
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    helpful_count = models.IntegerField(default=0)
+    helpful_users = models.ManyToManyField(User, related_name='helpful_reviews', blank=True)
     
     class Meta:
         ordering = ['-created_at']
@@ -91,6 +91,11 @@ class Review(models.Model):
     
     def __str__(self):
         return f"{self.product.name} - {self.rating} stars by {self.user.username}"
+    
+    @property
+    def helpful_count(self):
+        """Count of users who marked this review as helpful"""
+        return self.helpful_users.count()
 
 
 class Cart(models.Model):

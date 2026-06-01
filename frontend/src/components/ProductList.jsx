@@ -16,13 +16,28 @@ export default function ProductList() {
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
+      // Build params object - axios will handle arrays as multiple query params
       const params = {
-        ...(filters.category.length && { category: filters.category.join(',') }),
-        ...(filters.searchQuery && { search: filters.searchQuery }),
-        ...(filters.minPrice && { min_price: filters.minPrice }),
-        ...(filters.maxPrice && { max_price: filters.maxPrice }),
         ordering: filters.sortBy,
       };
+      
+      // Add category filter if selected
+      if (filters.category.length > 0) {
+        params.category = filters.category;
+      }
+      
+      // Add search filter if provided
+      if (filters.searchQuery) {
+        params.search = filters.searchQuery;
+      }
+      
+      // Add price filters - always include them
+      if (filters.minPrice !== undefined && filters.minPrice !== null) {
+        params.min_price = filters.minPrice;
+      }
+      if (filters.maxPrice !== undefined && filters.maxPrice !== null) {
+        params.max_price = filters.maxPrice;
+      }
 
       const response = await productsAPI.list(params);
       setProducts(response.data.results || response.data);

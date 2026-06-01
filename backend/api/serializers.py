@@ -43,12 +43,35 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     """Serialize product reviews"""
     username = serializers.CharField(source='user.username', read_only=True)
+    product_id = serializers.IntegerField(write_only=True)
+    is_user_review = serializers.SerializerMethodField()
+    is_marked_helpful = serializers.SerializerMethodField()
+    helpful_count = serializers.SerializerMethodField()
     
     class Meta:
         model = Review
-        fields = ['id', 'user', 'username', 'rating', 'title', 'comment', 
-                  'helpful_count', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'helpful_count']
+        fields = ['id', 'user', 'username', 'product_id', 'rating', 'title', 'comment', 
+                  'helpful_count', 'is_user_review', 'is_marked_helpful', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'user', 'username', 'created_at', 'updated_at', 'helpful_count', 
+                           'is_user_review', 'is_marked_helpful']
+    
+    def get_is_user_review(self, obj):
+        """Check if current user is the review author"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.user_id == request.user.id
+        return False
+    
+    def get_is_marked_helpful(self, obj):
+        """Check if current user marked this review as helpful"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.helpful_users.filter(id=request.user.id).exists()
+        return False
+    
+    def get_helpful_count(self, obj):
+        """Get helpful count from the property"""
+        return obj.helpful_count
 
 
 # Inventory Serializers
