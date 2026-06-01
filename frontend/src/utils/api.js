@@ -19,6 +19,12 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Token ${token}`;
   }
+  
+  // If sending FormData, remove Content-Type header to let axios set it
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  
   return config;
 });
 
@@ -158,6 +164,47 @@ export const authAPI = {
   // Update profile
   updateProfile: (data) => 
     apiClient.patch('/auth/profile/', data),
+};
+
+// ADMIN
+export const adminAPI = {
+  // Products
+  products: {
+    list: () => apiClient.get('/admin/products/'),
+    create: (data) => apiClient.post('/admin/products/', data),
+    update: (id, data) => apiClient.patch(`/admin/products/${id}/`, data),
+    delete: (id) => apiClient.delete(`/admin/products/${id}/`),
+  },
+
+  // Inventory
+  inventory: {
+    list: () => apiClient.get('/admin/inventory/'),
+    updateStock: (id, quantity) => 
+      apiClient.post(`/admin/inventory/${id}/update_stock/`, { quantity }),
+    updateReorderLevel: (id, reorderLevel) => 
+      apiClient.post(`/admin/inventory/${id}/reorder_alert/`, { reorder_level: reorderLevel }),
+  },
+
+  // Orders
+  orders: {
+    list: () => apiClient.get('/admin/orders/'),
+    detail: (id) => apiClient.get(`/admin/orders/${id}/`),
+    updateStatus: (id, status) => 
+      apiClient.post(`/admin/orders/${id}/update_status/`, { status }),
+  },
+
+  // Users
+  users: {
+    list: () => apiClient.get('/admin/users/'),
+    toggleStaff: (id) => apiClient.post(`/admin/users/${id}/toggle_staff/`),
+    toggleActive: (id) => apiClient.post(`/admin/users/${id}/toggle_active/`),
+  },
+
+  // Reviews
+  reviews: {
+    list: () => apiClient.get('/admin/reviews/'),
+    delete: (id) => apiClient.delete(`/admin/reviews/${id}/`),
+  },
 };
 
 export default apiClient;

@@ -10,7 +10,13 @@ router.register(r'products', views.ProductViewSet, basename='product')
 router.register(r'reviews', views.ReviewViewSet, basename='review')
 router.register(r'cart', views.CartViewSet, basename='cart')
 router.register(r'orders', views.OrderViewSet, basename='order')
+
+# Admin routes
+router.register(r'admin/products', views.AdminProductViewSet, basename='admin-product')
 router.register(r'admin/inventory', views.AdminInventoryViewSet, basename='inventory')
+router.register(r'admin/orders', views.AdminOrderViewSet, basename='admin-order')
+router.register(r'admin/users', views.AdminUserViewSet, basename='admin-user')
+router.register(r'admin/reviews', views.AdminReviewViewSet, basename='admin-review')
 
 urlpatterns = [
     # Auth endpoints

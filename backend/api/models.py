@@ -46,6 +46,16 @@ class Product(models.Model):
         """Count total reviews"""
         return self.reviews.count()
 
+    @property
+    def is_in_stock(self):
+        """Check if product is in stock via its inventory relationship"""
+        return hasattr(self, 'inventory') and self.inventory.stock_quantity > 0
+
+    @property
+    def stock_quantity(self):
+        """Get stock quantity via its inventory relationship"""
+        return self.inventory.stock_quantity if hasattr(self, 'inventory') else 0
+
 
 class Inventory(models.Model):
     """

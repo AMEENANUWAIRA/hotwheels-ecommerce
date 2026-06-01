@@ -419,6 +419,16 @@ class OrderViewSet(viewsets.ViewSet):
 
 
 # Admin Views
+class AdminProductViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing products (admin only).
+    Create, read, update, delete products.
+    """
+    queryset = Product.objects.all()
+    serializer_class = ProductDetailSerializer
+    permission_classes = [IsAdminUser]
+
+
 class AdminInventoryViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing inventory (admin only).
@@ -463,3 +473,100 @@ class AdminInventoryViewSet(viewsets.ModelViewSet):
                 'reorder_level': product.inventory.reorder_level
             })
         return Response({'error': 'Reorder level required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminOrderViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for viewing and managing orders (admin only).
+    View all orders and order details.
+    """
+    queryset = Order.objects.all().order_by('-created_at')
+    serializer_class = OrderDetailSerializer
+    permission_classes = [IsAdminUser]
+    
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        """
+        Update order status.
+        POST with: {"status": "shipped"}
+        """
+        order = self.get_object()
+        new_status = request.data.get('status')
+        valid_statuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
+        
+        if new_status in valid_statuses:
+            order.status = new_status
+            order.save()
+            return Response({
+                'order_number': order.order_number,
+                'status': order.status
+            })
+        return Response({'error': f'Invalid status. Must be one of {valid_statuses}'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminUserViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for viewing users (admin only).
+    View user information.
+    """
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    permission_classes = [IsAdminUser]
+    
+    @action(detail=True, methods=['post'])
+    def toggle_staff(self, request, pk=None):
+        """
+        Toggle staff status for a user.
+        Cannot modify own staff status.
+        """
+        user = self.get_object()
+        if user.id == request.user.id:
+            return Response(
+                {'error': 'You cannot modify your own staff status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.is_staff = not user.is_staff
+        user.save()
+        return Response({
+            'username': user.username,
+            'is_staff': user.is_staff
+        })
+    
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """
+        Toggle active status for a user.
+        Cannot modify own active status.
+        """
+        user = self.get_object()
+        if user.id == request.user.id:
+            return Response(
+                {'error': 'You cannot modify your own active status'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        user.is_active = not user.is_active
+        user.save()
+        return Response({
+            'username': user.username,
+            'is_active': user.is_active
+        })
+
+
+class AdminReviewViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing reviews (admin only).
+    View, delete, or flag reviews.
+    """
+    queryset = Review.objects.all().order_by('-created_at')
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAdminUser]
+    
+    def destroy(self, request, *args, **kwargs):
+        """Delete a review"""
+        review = self.get_object()
+        product_name = review.product.name
+        review.delete()
+        return Response({
+            'message': f'Review deleted',
+            'product': product_name
+        })

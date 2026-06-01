@@ -14,7 +14,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Serialize user data without exposing sensitive information"""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active', 'date_joined']
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -43,6 +43,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     """Serialize product reviews"""
     username = serializers.CharField(source='user.username', read_only=True)
+    product_name = serializers.CharField(source='product.name', read_only=True)
     product_id = serializers.IntegerField(write_only=True)
     is_user_review = serializers.SerializerMethodField()
     is_marked_helpful = serializers.SerializerMethodField()
@@ -50,9 +51,9 @@ class ReviewSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Review
-        fields = ['id', 'user', 'username', 'product_id', 'rating', 'title', 'comment', 
+        fields = ['id', 'user', 'username', 'product_id', 'product_name', 'rating', 'title', 'comment', 
                   'helpful_count', 'is_user_review', 'is_marked_helpful', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'user', 'username', 'created_at', 'updated_at', 'helpful_count', 
+        read_only_fields = ['id', 'user', 'username', 'product_name', 'created_at', 'updated_at', 'helpful_count', 
                            'is_user_review', 'is_marked_helpful']
     
     def get_is_user_review(self, obj):
@@ -85,7 +86,12 @@ class InventorySerializer(serializers.ModelSerializer):
         fields = ['id', 'stock_quantity', 'reorder_level', 'is_in_stock', 'needs_reorder']
     
     def get_is_in_stock(self, obj):
-        return obj.is_in_stock()
+        # Check if the product actually has an associated inventory
+        if hasattr(obj, 'inventory') and obj.inventory is not None:
+            return obj.inventory.is_in_stock()
+        
+        # If no inventory exists, default to False (Out of Stock)
+        return False
     
     def get_needs_reorder(self, obj):
         return obj.needs_reorder()
@@ -101,7 +107,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'name', 'price', 'image', 'category', 'color', 
-                  'average_rating', 'total_reviews', 'is_in_stock']
+                  'average_rating', 'total_reviews', 'is_in_stock', 'stock_quantity']
     
     def get_average_rating(self, obj):
         return obj.average_rating()
@@ -189,20 +195,26 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderListSerializer(serializers.ModelSerializer):
     """Simplified order serializer for order lists"""
+    user = UserSerializer(read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    
     class Meta:
         model = Order
-        fields = ['id', 'order_number', 'status', 'total', 'created_at']
+        fields = ['id', 'order_number', 'user', 'username', 'status', 'total', 'created_at']
 
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     """Complete order with all items and details"""
     items = OrderItemSerializer(many=True, read_only=True)
+    user = UserSerializer(read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    total_amount = serializers.DecimalField(source='total', max_digits=10, decimal_places=2, read_only=True)
     
     class Meta:
         model = Order
-        fields = ['id', 'order_number', 'status', 'items', 'shipping_address', 
+        fields = ['id', 'order_number', 'user', 'username', 'status', 'items', 'shipping_address', 
                   'shipping_city', 'shipping_state', 'shipping_zip', 'subtotal', 
-                  'tax', 'shipping_cost', 'total', 'payment_method', 'is_paid', 
+                  'tax', 'shipping_cost', 'total', 'total_amount', 'payment_method', 'is_paid', 
                   'created_at', 'updated_at']
 
 
