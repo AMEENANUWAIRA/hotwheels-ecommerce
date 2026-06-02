@@ -93,8 +93,22 @@ export const useStore = create((set, get) => ({
   // Update cart item quantity
   updateCartItem: async (productId, quantity) => {
     try {
+      const { cart } = get();
+      const existingItem = cart?.items?.find(item => item.product.id === productId);
+
+      // ADD THIS GUARD BLOCK:
+      if (existingItem) {
+        const maxStock = existingItem.product.stock_quantity || 0;
+        
+        // If they try to increment past available stock, block it!
+        if (quantity > maxStock) {
+          set({ error: `Only ${maxStock} units available in stock.` });
+          return; // This completely stops the API call from happening
+        }
+      }
+
       const response = await cartAPI.updateItem(productId, quantity);
-      set({ cart: response.data });
+      set({ cart: response.data, error: null });
     } catch (error) {
       set({ error: 'Failed to update cart' });
     }

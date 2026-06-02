@@ -103,6 +103,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     total_reviews = serializers.SerializerMethodField()
     is_in_stock = serializers.SerializerMethodField()
+    stock_quantity = serializers.IntegerField(source='inventory.stock_quantity', read_only=True)
     
     class Meta:
         model = Product

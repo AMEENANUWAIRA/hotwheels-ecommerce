@@ -65,6 +65,12 @@ export default function ShoppingCart() {
     if (newQuantity <= 0) {
       await removeFromCart(productId);
     } else {
+      // Find item and check max stock before allowing update
+      const item = cart?.items?.find((i) => i.product.id === productId);
+      const maxStock = item?.product?.stock_quantity;
+
+      if (maxStock !== undefined && newQuantity > maxStock) return;
+
       setIsUpdating(true);
       await updateCartItem(productId, newQuantity);
       setIsUpdating(false);
@@ -125,8 +131,9 @@ export default function ShoppingCart() {
                     <span className="w-8 text-center font-semibold">{item.quantity}</span>
                     <button
                       onClick={() => handleQuantityChange(item.product.id, item.quantity + 1)}
-                      disabled={isUpdating}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      disabled={isUpdating || item.quantity >= (item.product.stock_quantity ?? 0)}
+                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                      title={item.quantity >= (item.product.stock_quantity ?? 0) ? "Maximum stock reached" : ""}
                     >
                       <Plus size={18} />
                     </button>
