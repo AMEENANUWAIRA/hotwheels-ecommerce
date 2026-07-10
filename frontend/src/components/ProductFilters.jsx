@@ -3,17 +3,14 @@ import { useEffect, useState } from 'react';
 import useStore from '../stores/useStore';
 import { Search, Sliders } from 'lucide-react';
 
-const CATEGORIES = [
-  { value: 'street_racers', label: 'Street Racers' },
-  { value: 'hot_trucks', label: 'Hot Trucks' },
-  { value: 'sports_cars', label: 'Sports Cars' },
-  { value: 'classics', label: 'Classics' },
-  { value: 'exotics', label: 'Exotics' },
-];
-
 export default function ProductFilters() {
-  const { filters, setFilters, resetFilters } = useStore();
+  const { filters, setFilters, resetFilters, categories, fetchCategories } = useStore();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Automatically fetch categories from backend when component loads
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -24,7 +21,7 @@ export default function ProductFilters() {
         </h3>
         <button
           onClick={resetFilters}
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-sm text-blue-600 hover:text-blue-800 font-semibold"
         >
           Reset Filters
         </button>
@@ -53,8 +50,22 @@ export default function ProductFilters() {
           Category
         </label>
         <div className="space-y-2">
-          {CATEGORIES.map((category) => (
-            <label key={category.value} className="flex items-center">
+          
+          {/* Permanent "All Categories" Option */}
+          <label className="flex items-center pb-2 border-b border-gray-100 mb-2">
+            <input
+              type="checkbox"
+              // Checked when no specific categories are selected
+              checked={filters.category.length === 0}
+              onChange={() => setFilters({ category: [] })}
+              className="w-4 h-4 text-blue-600 rounded"
+            />
+            <span className="ml-2 text-gray-900 font-medium">All Categories</span>
+          </label>
+
+          {/* Dynamically Loaded Categories */}
+          {categories.map((category) => (
+            <label key={category.value || category.id} className="flex items-center">
               <input
                 type="checkbox"
                 checked={filters.category.includes(category.value)}
@@ -66,7 +77,7 @@ export default function ProductFilters() {
                 }}
                 className="w-4 h-4 text-blue-600 rounded"
               />
-              <span className="ml-2 text-gray-700">{category.label}</span>
+              <span className="ml-2 text-gray-700">{category.label || category.name}</span>
             </label>
           ))}
         </div>

@@ -1,8 +1,6 @@
 // frontend/src/stores/useStore.js
-// Global state management with Zustand
-
 import { create } from 'zustand';
-import { authAPI, cartAPI, ordersAPI } from '../utils/api';
+import { authAPI, cartAPI, ordersAPI, productsAPI } from '../utils/api';
 
 export const useStore = create((set, get) => ({
   // USER STATE
@@ -10,7 +8,6 @@ export const useStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  // Fetch current user
   fetchUser: async () => {
     try {
       set({ isLoading: true });
@@ -23,13 +20,10 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Register user
   register: async (username, email, password) => {
     try {
       set({ isLoading: true });
       const response = await authAPI.register(username, email, password);
-      // After registration, try to fetch user profile
-      // In real app, you'd get token from backend
       return response.data;
     } catch (error) {
       set({ error: error.response?.data?.detail || 'Registration failed' });
@@ -39,7 +33,6 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Login user
   login: async (username, password) => {
     try {
       set({ isLoading: true, error: null });
@@ -55,7 +48,6 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Logout
   logout: () => {
     localStorage.removeItem('token');
     set({ user: null, cart: null });
@@ -65,7 +57,6 @@ export const useStore = create((set, get) => ({
   cart: null,
   cartLoading: false,
 
-  // Fetch user's cart
   fetchCart: async () => {
     try {
       set({ cartLoading: true });
@@ -78,7 +69,6 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Add item to cart
   addToCart: async (productId, quantity = 1) => {
     try {
       const response = await cartAPI.addItem(productId, quantity);
@@ -90,20 +80,16 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Update cart item quantity
   updateCartItem: async (productId, quantity) => {
     try {
       const { cart } = get();
       const existingItem = cart?.items?.find(item => item.product.id === productId);
 
-      // ADD THIS GUARD BLOCK:
       if (existingItem) {
         const maxStock = existingItem.product.stock_quantity || 0;
-        
-        // If they try to increment past available stock, block it!
         if (quantity > maxStock) {
           set({ error: `Only ${maxStock} units available in stock.` });
-          return; // This completely stops the API call from happening
+          return; 
         }
       }
 
@@ -114,7 +100,6 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Remove from cart
   removeFromCart: async (productId) => {
     try {
       const response = await cartAPI.removeItem(productId);
@@ -124,7 +109,6 @@ export const useStore = create((set, get) => ({
     }
   },
 
-  // Clear cart
   clearCart: async () => {
     try {
       await cartAPI.clear();
@@ -138,7 +122,6 @@ export const useStore = create((set, get) => ({
   orders: [],
   ordersLoading: false,
 
-  // Fetch user's orders
   fetchOrders: async () => {
     try {
       set({ ordersLoading: true });
@@ -148,6 +131,22 @@ export const useStore = create((set, get) => ({
       console.error('Failed to fetch orders:', error);
     } finally {
       set({ ordersLoading: false });
+    }
+  },
+
+  // DYNAMIC CATEGORIES STATE
+  categories: [],
+  categoriesLoading: false,
+
+  fetchCategories: async () => {
+    try {
+      set({ categoriesLoading: true });
+      const response = await productsAPI.getCategories();
+      set({ categories: response.data });
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
+    } finally {
+      set({ categoriesLoading: false });
     }
   },
 
@@ -161,9 +160,22 @@ export const useStore = create((set, get) => ({
   },
 
   setFilters: (newFilters) => {
-    set((state) => ({
-      filters: { ...state.filters, ...newFilters },
-    }));
+    set((state) => {
+      const updatedFilters = { ...state.filters, ...newFilters };
+      
+      // Prevent conflicts between Navbar (strings) and Sidebar (arrays)
+      if (newFilters.category !== undefined) {
+        if (typeof newFilters.category === 'string') {
+          if (newFilters.category === 'all' || newFilters.category === '') {
+            updatedFilters.category = []; // "All Categories" resets to clean empty array
+          } else {
+            updatedFilters.category = [newFilters.category]; // Convert single string to array
+          }
+        }
+      }
+      
+      return { filters: updatedFilters };
+    });
   },
 
   resetFilters: () => {
@@ -178,7 +190,6 @@ export const useStore = create((set, get) => ({
     });
   },
 
-  // UTILITY
   clearError: () => set({ error: null }),
 }));
 

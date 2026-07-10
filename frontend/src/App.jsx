@@ -12,8 +12,14 @@ import OrderDetails from './components/OrderDetails';
 import OrderConfirmation from './components/OrderConfirmation';
 import ProductReviews from './components/ProductReviews';
 import AdminDashboard from './components/AdminDashboard';
-import { ShoppingCart as CartIcon, LogOut, User, Menu, X } from 'lucide-react';
 import { productsAPI } from './utils/api';
+
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import { Button } from './components/ui/Button';
+import { Input } from './components/ui/Input';
+import HeroSection from "./components/ProductPage/HeroSection";
+import FilterSidebar from "./components/ProductPage/FilterSidebar";
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const BASE_URL = API_URL.replace('/api', '');
@@ -24,162 +30,6 @@ const getImageUrl = (imagePath) => {
   if (imagePath.startsWith('http')) return imagePath;
   return `${BASE_URL}${imagePath}`;
 };
-
-function Header() {
-  const { user, logout, cart } = useStore();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    window.location.href = '/';
-  };
-
-  return (
-    <header className="bg-blue-600 text-white shadow-md">
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          {/* Logo */}
-          <Link to="/" className="text-2xl font-bold hover:text-blue-100">
-            🏎️ Hot Wheels
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex gap-6 items-center">
-            <Link
-              to="/products"
-              className="hover:text-blue-100 transition"
-            >
-              Shop
-            </Link>
-
-            {user ? (
-              <>
-                <Link
-                  to="/orders"
-                  className="hover:text-blue-100 transition"
-                >
-                  My Orders
-                </Link>
-                {user.is_staff && (
-                  <Link
-                    to="/admin"
-                    className="hover:text-blue-100 transition font-semibold"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <div className="flex items-center gap-2">
-                  <User size={20} />
-                  <span>{user.username}</span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 hover:text-blue-100"
-                >
-                  <LogOut size={20} />
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="hover:text-blue-100 transition"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-white text-blue-600 px-4 py-2 rounded hover:bg-blue-50"
-                >
-                  Register
-                </Link>
-              </>
-            )}
-
-            {/* Cart Icon */}
-            <Link
-              to="/cart"
-              className="relative hover:text-blue-100"
-            >
-              <CartIcon size={24} />
-              {cart && cart.item_count > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {cart.item_count}
-                </span>
-              )}
-            </Link>
-          </nav>
-
-          {/* Mobile Menu Button */}
-          <button
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <nav className="md:hidden mt-4 space-y-2">
-            <Link
-              to="/products"
-              className="block hover:text-blue-100 py-2"
-            >
-              Shop
-            </Link>
-            {user ? (
-              <>
-                <Link
-                  to="/orders"
-                  className="block hover:text-blue-100 py-2"
-                >
-                  My Orders
-                </Link>
-                {user.is_staff && (
-                  <Link
-                    to="/admin"
-                    className="block hover:text-blue-100 py-2 font-semibold"
-                  >
-                    Admin
-                  </Link>
-                )}
-                <Link
-                  to="/cart"
-                  className="block hover:text-blue-100 py-2"
-                >
-                  Cart ({cart?.item_count || 0})
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left hover:text-blue-100 py-2"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to="/login"
-                  className="block hover:text-blue-100 py-2"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="block hover:text-blue-100 py-2"
-                >
-                  Register
-                </Link>
-              </>
-            )}
-          </nav>
-        )}
-      </div>
-    </header>
-  );
-}
 
 function HomePage() {
   return (
@@ -204,17 +54,22 @@ function HomePage() {
 
 function ProductsPage() {
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Our Collection</h1>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <aside className="lg:col-span-1">
-          <ProductFilters />
-        </aside>
-        <main className="lg:col-span-3">
-          <ProductList />
-        </main>
+    <>
+      {/* 1. New Professional Promotional/Hero Banner */}
+      <HeroSection />
+      
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* 2. New Advanced Sidebar Filter */}
+          <FilterSidebar />
+          
+          {/* 3. Your Product Grid Area */}
+          <div className="lg:col-span-3">
+            <ProductList />
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -256,29 +111,31 @@ function LoginPage() {
         </div>
       )}
       <form onSubmit={handleLogin} className="space-y-4">
-        <input
+        <Input
+          label="Username"
           type="text"
-          placeholder="Username"
+          placeholder="Enter username"
           value={credentials.username}
           onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
           disabled={isLoading}
         />
-        <input
+        <Input
+          label="Password"
           type="password"
-          placeholder="Password"
+          placeholder="Enter password"
           value={credentials.password}
           onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
           disabled={isLoading}
         />
-        <button
+        <Button
           type="submit"
-          disabled={isLoading}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 disabled:bg-gray-400"
+          variant="primary"
+          size="md"
+          fullWidth
+          loading={isLoading}
         >
           {isLoading ? 'Logging in...' : 'Login'}
-        </button>
+        </Button>
       </form>
       <p className="mt-4 text-center text-gray-600">
         Don't have an account?{' '}
@@ -428,7 +285,7 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex flex-col">
         <Header />
 
         <main className="flex-1">
@@ -448,12 +305,7 @@ export default function App() {
           </Routes>
         </main>
 
-        {/* Footer */}
-        <footer className="bg-gray-800 text-white mt-12">
-          <div className="max-w-7xl mx-auto px-4 py-8 text-center">
-            <p>&copy; 2024 Hot Wheels Store. All rights reserved.</p>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </Router>
   );

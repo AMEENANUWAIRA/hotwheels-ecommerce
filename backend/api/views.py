@@ -115,6 +115,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             # Fallback to 'category' in case format changes
             categories = self.request.query_params.getlist('category')
         
+        # 💡 FIX: Filter out empty strings, whitespace, or the string 'all'
+        categories = [c.strip() for c in categories if c and c.strip() and c.lower() != 'all']
+        
         if categories:
             queryset = queryset.filter(category__in=categories)
         
@@ -191,6 +194,26 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(top_products, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'], url_path='categories')
+    def categories(self, request):
+        """
+        Get all unique categories currently in the database.
+        /products/categories/
+        """
+        # 1. Grab all unique category names from your existing products
+        unique_categories = Product.objects.values_list('category', flat=True).distinct()
+        
+        # 2. Format them into the exact JSON shape your frontend expects:
+        # Example: {"value": "street_racers", "label": "Street Racers"}
+        formatted_categories = [
+            {
+                "value": cat, 
+                "label": cat.replace('_', ' ').title() if cat else "Uncategorized"
+            } 
+            for cat in unique_categories if cat
+        ]
+        
+        return Response(formatted_categories)
 
 # Review Views
 class ReviewViewSet(viewsets.ModelViewSet):

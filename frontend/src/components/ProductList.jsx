@@ -1,9 +1,9 @@
 // frontend/src/components/ProductList.jsx
 import { useEffect, useState } from 'react';
 import { productsAPI } from '../utils/api';
-import ProductCard from './ProductCard';
+// import ProductCard from './ProductCard';
 import useStore from '../stores/useStore';
-
+import ProductCard from './ProductCard/ProfessionalCard';
 export default function ProductList() {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +22,7 @@ export default function ProductList() {
       };
       
       // Add category filter if selected
-      if (filters.category.length > 0) {
+      if (filters.category && Array.isArray(filters.category) && filters.category.length > 0) {
         params.category = filters.category;
       }
       

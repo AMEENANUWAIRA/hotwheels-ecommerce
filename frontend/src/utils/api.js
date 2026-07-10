@@ -62,6 +62,10 @@ export const productsAPI = {
   // Get recommended products
   recommendations: (productId) => 
     apiClient.get(`/products/${productId}/recommendations/`),
+
+  // Get dynamic categories from Django
+  getCategories: () => 
+    apiClient.get('/products/categories/'),
 };
 
 // REVIEWS
